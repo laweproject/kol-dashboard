@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>KOL & Affiliate Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--card:#1a1d27;--border:#2a2f45;
+  --accent:#4f6ef7;--green:#22c55e;--amber:#f59e0b;
+  --text:#f1f5f9;--muted:#94a3b8;--radius:12px;
+  --internal:#818cf8;--affiliator:#34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+header h1{font-size:17px;font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+main{padding:24px;max-width:1400px;margin:0 auto}
+.section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:28px 0 12px}
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.filter-bar label{font-size:12px;color:var(--muted)}
+select{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+select:focus{outline:none;border-color:var(--accent)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.kpi-label{font-size:11px;color:var(--muted);margin-bottom:8px}
+.kpi-value{font-size:24px;font-weight:700;line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px}
+.kpi-card.a{border-color:rgba(79,110,247,.35);background:rgba(79,110,247,.07)}
+.kpi-card.g{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.07)}
+.kpi-card.y{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.07)}
+.kpi-card.p{border-color:rgba(129,140,248,.35);background:rgba(129,140,248,.07)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:14px}
+.chart-wrap{position:relative;height:220px}
+.tabs{display:flex;gap:4px;margin-bottom:14px}
+.tab{padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.lb-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{font-size:12px;color:var(--muted);width:22px;flex-shrink:0;font-weight:700}
+.lb-rank.gold{color:#f59e0b}.lb-rank.silver{color:#94a3b8}.lb-rank.bronze{color:#cd7c3a}
+.lb-name{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.lb-name:hover{color:var(--accent);text-decoration:underline}
+.lb-bar-wrap{width:60px;height:4px;background:var(--border);border-radius:2px;flex-shrink:0}
+.lb-bar{height:4px;background:var(--accent);border-radius:2px}
+.lb-val{font-size:13px;font-weight:600;color:var(--accent);min-width:64px;text-align:right}
+.legend{display:flex;gap:16px;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{color:var(--muted);font-weight:500;text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:7px 10px;border-bottom:1px solid rgba(42,47,69,.5);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-blue{background:rgba(79,110,247,.2);color:#818cf8}
+.b-green{background:rgba(34,197,94,.15);color:#4ade80}
+.b-amber{background:rgba(245,158,11,.15);color:#fbbf24}
+.tiktok-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(79,110,247,.15);color:#818cf8;text-decoration:none;border:1px solid rgba(79,110,247,.3);white-space:nowrap}
+.tiktok-btn:hover{background:rgba(79,110,247,.3)}
+.creator-link{color:var(--accent);cursor:pointer}
+.creator-link:hover{text-decoration:underline}
+.drawer{position:fixed;top:0;right:-520px;width:520px;height:100vh;background:var(--card);border-left:1px solid var(--border);z-index:200;transition:right .3s ease;overflow-y:auto;display:flex;flex-direction:column}
+.drawer.open{right:0}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199}
+.overlay.open{display:block}
+.drawer-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;background:var(--card);z-index:1}
+.drawer-body{padding:20px;flex:1;overflow-y:auto}
+.close-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:4px}
+.close-btn:hover{color:var(--text)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.stat-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px}
+.stat-box-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.stat-box-val{font-size:18px;font-weight:700}
+.empty{text-align:center;color:var(--muted);padding:40px;font-size:13px}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:var(--muted)}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.spin-sm{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.refresh-btn{background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600}
+.refresh-btn:hover{opacity:.85}
+.config-bar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.config-bar input{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;flex:1;min-width:200px}
+.config-bar input:focus{outline:none;border-color:var(--accent)}
+.save-btn{background:var(--green);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap}
+#last-updated{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div style="min-height:100vh">
+<header>
+  <h1>🎯 KOL & Affiliate Dashboard</h1>
+  <div class="header-right">
+    <span id="last-updated"></span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+<main id="main">
+  <div class="loading-screen">
+    <div class="spin"></div>
+    <div>Memuat dashboard...</div>
+  </div>
+</main>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div style="font-size:15px;font-weight:600" id="drawer-name">-</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px" id="drawer-sub">Detail Creator</div>
+    </div>
+    <button class="close-btn" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</div>
+
+<script>
+// ── Config — GAS API URL disimpan di localStorage ────────
+const LS_KEY = 'kol_api_url';
+let GAS_URL  = localStorage.getItem(LS_KEY) || '';
+
+let allData     = { months: [], byMonth: {} };
+let activeBulan = null;
+let lbMode      = 'gmv';
+let chartGMV    = null;
+let chartVT     = null;
+
+// ── Load ─────────────────────────────────────────────────
+async function loadData() {
+  if (!GAS_URL) { showConfig(); return; }
+
+  document.getElementById('last-updated').textContent = 'Memuat...';
+  document.getElementById('main').innerHTML =
+    '<div class="loading-screen"><div class="spin"></div><div>Memuat data...</div></div>';
+
+  try {
+    const res  = await fetch(GAS_URL);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+
+    allData     = json.data;
+    const months  = allData.months || [];
+    const byMonth = allData.byMonth || {};
+
+    document.getElementById('last-updated').textContent =
+      'Update: ' + new Date().toLocaleString('id-ID');
+
+    if (!months.length) {
+      document.getElementById('main').innerHTML =
+        '<div class="empty" style="margin-top:60px">Belum ada data.<br>Import file TikTok report di Google Sheets terlebih dahulu.</div>';
+      return;
+    }
+
+    if (!activeBulan || !byMonth[activeBulan]) activeBulan = months[months.length - 1];
+    renderShell(months);
+    const d = byMonth[activeBulan];
+    if (d) { renderKPI(d); renderCharts(d); renderLeaderboard('gmv', d); renderTopVideos(d); }
+
+  } catch(e) {
+    document.getElementById('main').innerHTML =
+      `<div class="empty" style="margin-top:60px">❌ Gagal memuat data.<br><small>${e.message}</small><br><br>
+      <button class="refresh-btn" onclick="showConfig()">⚙️ Ubah API URL</button></div>`;
+    document.getElementById('last-updated').textContent = 'Error';
+  }
+}
+
+// ── Config screen (input GAS URL) ────────────────────────
+function showConfig() {
+  document.getElementById('main').innerHTML = `
+    <div style="max-width:560px;margin:60px auto">
+      <div class="card">
+        <div class="card-title" style="font-size:16px;margin-bottom:20px">⚙️ Setup API URL</div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6">
+          Masukkan URL Google Apps Script Web App kamu.<br>
+          Dapatkan dari Apps Script → Deploy → Manage deployments → copy URL.
+        </p>
+        <input type="text" id="api-url-input" placeholder="https://script.google.com/macros/s/xxx/exec"
+          value="${GAS_URL}" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px"/>
+        <button class="save-btn" style="width:100%;padding:10px" onclick="saveConfig()">Simpan & Muat Dashboard</button>
+      </div>
+    </div>`;
+}
+
+function saveConfig() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url) return;
+  GAS_URL = url;
+  localStorage.setItem(LS_KEY, url);
+  loadData();
+}
+
+// ── Shell ─────────────────────────────────────────────────
+function renderShell(months) {
+  const opts = months.map(m =>
+    `<option value="${m}" ${m===activeBulan?'selected':''}>${fmtBulan(m)}</option>`
+  ).join('');
+
+  document.getElementById('main').innerHTML = `
+    <div class="section-title">Filter</div>
+    <div class="filter-bar">
+      <label>Periode:</label>
+      <select id="bulan-select" onchange="changeBulan(this.value)">${opts}</select>
+      <span id="filter-info" style="font-size:12px;color:var(--muted)"></span>
+      <button class="tab" style="margin-left:auto" onclick="showConfig()">⚙️ API</button>
+    </div>
+
+    <div class="section-title">Ringkasan</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="section-title">Performa</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Trend GMV Harian</div>
+        <div class="chart-wrap"><canvas id="chartGMV"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">VT Baru Harian</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--internal)"></div>Internal</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--affiliator)"></div>Affiliator</div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartVT"></canvas></div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:16px">
+      <div class="card">
+        <div class="card-title">Leaderboard Creator</div>
+        <div class="tabs">
+          <button class="tab active" id="tab-gmv" onclick="switchLb('gmv')">Top GMV</button>
+          <button class="tab" id="tab-roi" onclick="switchLb('roi')">Top ROI</button>
+        </div>
+        <div id="lb-content"></div>
+      </div>
+      <div class="card" style="overflow:auto">
+        <div class="card-title">Top Video <span style="color:var(--muted);font-weight:400;font-size:12px">— klik username untuk detail</span></div>
+        <div id="top-videos"></div>
+      </div>
+    </div>
+  `;
+}
+
+function changeBulan(bulan) {
+  activeBulan = bulan;
+  const d = allData.byMonth[bulan];
+  if (!d) { document.getElementById('filter-info').textContent = 'Tidak ada data.'; return; }
+  document.getElementById('filter-info').textContent = '';
+  renderKPI(d); renderCharts(d); renderLeaderboard(lbMode, d); renderTopVideos(d);
+}
+
+function fmtBulan(m) {
+  const [y,mo] = m.split('-');
+  return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(mo)-1]+' '+y;
+}
+
+// ── KPI ──────────────────────────────────────────────────
+function renderKPI(d) {
+  const k = d.kpi || {};
+  document.getElementById('kpi-grid').innerHTML = [
+    kpiCard('Jumlah Kreator', fmt(k.total_creator, 0), k.active_creator+' aktif',   'a'),
+    kpiCard('Jumlah Konten',  fmt(k.total_video,   0), 'video terlacak',             ''),
+    kpiCard('Total Spend',    fmtCur(k.total_spend),   'total biaya',                ''),
+    kpiCard('Total GMV',      fmtCur(k.total_gmv),     'akumulasi semua video',      'g'),
+    kpiCard('ROI',            fmtROI(k.avg_roi),        'GMV / Spend',               'y'),
+    kpiCard('Kreator Aktif',  fmt(k.active_creator,0), 'punya GMV > 0',             'g'),
+    kpiCard('VT Baru',        fmt(k.vt_baru,       0), 'posting bulan ini',          'p'),
+  ].join('');
+}
+
+function kpiCard(label,val,sub,cls){
+  return `<div class="kpi-card ${cls}"><div class="kpi-label">${label}</div><div class="kpi-value">${val}</div><div class="kpi-sub">${sub}</div></div>`;
+}
+
+// ── Charts ────────────────────────────────────────────────
+function renderCharts(d) {
+  renderGMVChart(d.trendGMV||[]);
+  renderVTChart(d.vtHarian||[]);
+}
+
+function renderGMVChart(trend) {
+  const ctx = document.getElementById('chartGMV').getContext('2d');
+  if (chartGMV) chartGMV.destroy();
+  if (!trend.length) { emptyChart(ctx,'Belum ada data GMV'); return; }
+  chartGMV = new Chart(ctx, {
+    type:'line',
+    data:{ labels:trend.map(t=>t.date), datasets:[{
+      data:trend.map(t=>t.gmv), borderColor:'#4f6ef7',
+      backgroundColor:'rgba(79,110,247,.1)', borderWidth:2,
+      pointRadius:3, fill:true, tension:.3
+    }]},
+    options: cOpts(v=>fmtCur(v))
+  });
+}
+
+function renderVTChart(harian) {
+  const ctx = document.getElementById('chartVT').getContext('2d');
+  if (chartVT) chartVT.destroy();
+  if (!harian.length) { emptyChart(ctx,'Belum ada VT baru bulan ini'); return; }
+  chartVT = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:harian.map(h=>h.date), datasets:[
+      { label:'Internal',   data:harian.map(h=>h.internal),   backgroundColor:'rgba(129,140,248,.8)', borderRadius:3 },
+      { label:'Affiliator', data:harian.map(h=>h.affiliator), backgroundColor:'rgba(52,211,153,.8)',  borderRadius:3 }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{stacked:true, ticks:{color:'#94a3b8',font:{size:10}}, grid:{color:'#2a2f45'}},
+        y:{stacked:true, ticks:{color:'#94a3b8',font:{size:11},stepSize:1}, grid:{color:'#2a2f45'}}
+      }
+    }
+  });
+}
+
+function cOpts(tickFmt){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#94a3b8',font:{size:10},maxTicksLimit:12},grid:{color:'#2a2f45'}},
+      y:{ticks:{color:'#94a3b8',font:{size:11},callback:tickFmt},grid:{color:'#2a2f45'}}
+    }
+  };
+}
+
+function emptyChart(ctx,msg){
+  ctx.fillStyle='#94a3b8'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(msg, ctx.canvas.width/2, 100);
+}
+
+// ── Leaderboard ───────────────────────────────────────────
+function switchLb(mode) {
+  lbMode = mode;
+  document.getElementById('tab-gmv').classList.toggle('active', mode==='gmv');
+  document.getElementById('tab-roi').classList.toggle('active', mode==='roi');
+  renderLeaderboard(mode, allData.byMonth[activeBulan]);
+}
+
+function renderLeaderboard(mode,d) {
+  const list = mode==='gmv' ? (d.leaderGMV||[]) : (d.leaderROI||[]);
+  if (!list.length) { document.getElementById('lb-content').innerHTML='<div class="empty">Belum ada data</div>'; return; }
+  const max   = mode==='gmv' ? list[0].gmv : list[0].roi;
+  const ranks = ['gold','silver','bronze'];
+  document.getElementById('lb-content').innerHTML = list.map((c,i)=>{
+    const raw = mode==='gmv'?c.gmv:c.roi;
+    const val = mode==='gmv'?fmtCur(c.gmv):fmtROI(c.roi);
+    const bar = max>0?raw/max*100:0;
+    return `<div class="lb-row">
+      <div class="lb-rank ${ranks[i]||''}">${i+1}</div>
+      <div class="lb-name" onclick="openCreator('${esc(c.username)}')">${esc(c.username)}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${bar}%"></div></div>
+      <div class="lb-val">${val}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Top Videos ────────────────────────────────────────────
+function renderTopVideos(d) {
+  const videos = d.topVideos||[];
+  if (!videos.length) { document.getElementById('top-videos').innerHTML='<div class="empty">Belum ada data</div>'; return; }
+  const rows = videos.map((v,i)=>{
+    const url = `https://www.tiktok.com/@${encodeURIComponent(v.username)}/video/${v.video_id}`;
+    const cls = v.roi>=5?'b-green':v.roi>=1?'b-amber':'b-blue';
+    return `<tr>
+      <td>${i+1}</td>
+      <td><span class="creator-link" onclick="openCreator('${esc(v.username)}')">${esc(v.username)}</span></td>
+      <td class="num">${fmtCur(v.gmv)}</td>
+      <td class="num">${fmt(v.order,0)}</td>
+      <td class="num"><span class="badge ${cls}">${fmtROI(v.roi)}</span></td>
+      <td class="num">${pct(v.ctr)}</td>
+      <td class="num">${pct(v.ctor)}</td>
+      <td><a class="tiktok-btn" href="${url}" target="_blank">▶ ${v.video_id.slice(-10)}</a></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('top-videos').innerHTML=`
+    <div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>#</th><th>Creator</th><th class="num">GMV</th><th class="num">Order</th>
+      <th class="num">ROI</th><th class="num">CTR</th><th class="num">CTOR</th><th>Video</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+// ── Creator Drawer ─────────────────────────────────────────
+async function openCreator(username) {
+  document.getElementById('drawer-name').textContent = '@'+username;
+  document.getElementById('drawer-sub').textContent  = fmtBulan(activeBulan)+' · Detail Creator';
+  document.getElementById('drawer-body').innerHTML   =
+    '<div style="padding:40px;text-align:center"><div class="spin-sm"></div> Memuat...</div>';
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+
+  try {
+    const url  = `${GAS_URL}?action=creator&username=${encodeURIComponent(username)}&bulan=${activeBulan}`;
+    const res  = await fetch(url);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    renderCreatorDrawer(username, json.data);
+  } catch(e) {
+    document.getElementById('drawer-body').innerHTML = `<div class="empty">❌ ${e.message}</div>`;
+  }
+}
+
+function renderCreatorDrawer(username, videos) {
+  if (!videos||!videos.length) {
+    document.getElementById('drawer-body').innerHTML =
+      '<div class="empty">Tidak ada data video untuk creator ini di periode ini.</div>';
+    return;
+  }
+  const tGMV   = videos.reduce((s,v)=>s+v.gmv,  0);
+  const tBiaya = videos.reduce((s,v)=>s+v.biaya, 0);
+  const tOrder = videos.reduce((s,v)=>s+v.order, 0);
+  const tClick = videos.reduce((s,v)=>s+v.click, 0);
+  const tImpr  = videos.reduce((s,v)=>s+v.impression, 0);
+  const roi    = tBiaya>0?tGMV/tBiaya:0;
+  const ctr    = tImpr >0?tClick/tImpr:0;
+  const ctor   = tClick>0?tOrder/tClick:0;
+
+  const rows = videos.map((v,i)=>{
+    const url = `https://www.tiktok.com/@${encodeURIComponent(v.username)}/video/${v.video_id}`;
+    const cls = v.roi>=5?'b-green':v.roi>=1?'b-amber':'b-blue';
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="num">${fmtCur(v.gmv)}</td>
+      <td class="num">${fmt(v.order,0)}</td>
+      <td class="num"><span class="badge ${cls}">${fmtROI(v.roi)}</span></td>
+      <td class="num">${pct(v.ctr)}</td>
+      <td class="num">${pct(v.ctor)}</td>
+      <td><a class="tiktok-btn" href="${url}" target="_blank">▶ ${v.video_id.slice(-10)}</a></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('drawer-body').innerHTML=`
+    <div class="stat-grid">
+      ${sBox('Total Video',   videos.length)}  ${sBox('Total GMV',    fmtCur(tGMV))}
+      ${sBox('Total Spend',   fmtCur(tBiaya))} ${sBox('Total Order',  fmt(tOrder,0))}
+      ${sBox('ROI',           fmtROI(roi))}    ${sBox('CTR',          pct(ctr))}
+      ${sBox('CTOR',          pct(ctor))}       ${sBox('Impression',   fmtK(tImpr))}
+    </div>
+    <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
+      Semua Video (${videos.length})
+    </div>
+    <div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>#</th><th class="num">GMV</th><th class="num">Order</th>
+      <th class="num">ROI</th><th class="num">CTR</th><th class="num">CTOR</th><th>Video</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function sBox(l,v){return `<div class="stat-box"><div class="stat-box-label">${l}</div><div class="stat-box-val">${v}</div></div>`;}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── Formatters ─────────────────────────────────────────────
+function fmtCur(n){n=n||0;if(n>=1e9)return'Rp'+(n/1e9).toFixed(2)+'M';if(n>=1e6)return'Rp'+(n/1e6).toFixed(2)+'jt';if(n>=1e3)return'Rp'+(n/1e3).toFixed(0)+'rb';return'Rp'+Math.round(n);}
+function fmt(n,d=1){n=n||0;if(n>=1e6)return(n/1e6).toFixed(d)+'M';if(n>=1e3)return(n/1e3).toFixed(d)+'K';return d===0?Math.round(n).toString():n.toFixed(d);}
+function fmtK(n){return fmt(n,1)}
+function fmtROI(n){return(n||0).toFixed(2)+'x'}
+function pct(n){return((n||0)*100).toFixed(1)+'%'}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── Init ──────────────────────────────────────────────────
+window.onload = () => { if (!GAS_URL) showConfig(); else loadData(); };
+</script>
+</body>
+</html>
