@@ -126,7 +126,7 @@ select:focus{outline:none;border-color:var(--accent)}
 const LS_KEY = 'kol_api_url';
 let GAS_URL  = localStorage.getItem(LS_KEY) || '';
 
-let allData     = { months: [], byMonth: {} };
+let allData     = { months: [], byMonth: {}, monthMeta: {} };
 let activeBulan = null;
 let lbMode      = 'gmv';
 let chartGMV    = null;
@@ -146,8 +146,14 @@ async function loadData() {
     if (!json.ok) throw new Error(json.error);
 
     allData     = json.data;
-    const months  = allData.months || [];
+    const months  = allData.months  || [];
     const byMonth = allData.byMonth || {};
+
+    // Buat monthMeta dari byMonth untuk label dropdown
+    allData.monthMeta = {};
+    Object.entries(byMonth).forEach(([m, d]) => {
+      allData.monthMeta[m] = { date_start: d.date_start, date_end: d.date_end };
+    });
 
     document.getElementById('last-updated').textContent =
       'Update: ' + new Date().toLocaleString('id-ID');
@@ -198,9 +204,13 @@ function saveConfig() {
 
 // ── Shell ─────────────────────────────────────────────────
 function renderShell(months) {
-  const opts = months.map(m =>
-    `<option value="${m}" ${m===activeBulan?'selected':''}>${fmtBulan(m)}</option>`
-  ).join('');
+  const opts = months.map(m => {
+    const meta  = (allData.monthMeta||{})[m] || {};
+    const label = meta.date_start && meta.date_end
+      ? fmtTgl(meta.date_start) + ' – ' + fmtTgl(meta.date_end)
+      : fmtBulan(m);
+    return `<option value="${m}" ${m===activeBulan?'selected':''}>${label}</option>`;
+  }).join('');
 
   document.getElementById('main').innerHTML = `
     <div class="section-title">Filter</div>
@@ -258,6 +268,18 @@ function changeBulan(bulan) {
 function fmtBulan(m) {
   const [y,mo] = m.split('-');
   return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(mo)-1]+' '+y;
+}
+function fmtTgl(s) {
+  if (!s) return '-';
+  const [y,mo,d] = s.split('-');
+  const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return parseInt(d)+' '+names[parseInt(mo)-1]+' '+y;
+}
+function fmtTgl(s) {
+  if (!s) return '';
+  const [y,mo,d] = s.split('-');
+  const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return parseInt(d)+' '+names[parseInt(mo)-1]+' '+y;
 }
 
 // ── KPI ──────────────────────────────────────────────────
