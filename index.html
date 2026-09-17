@@ -110,6 +110,12 @@ th .arw{font-size:10px;margin-left:3px}
 .filter .two input{width:50%}
 .filter-actions{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 .count{font-size:12px;color:var(--muted)}
+.pager{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.pager button{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:5px 10px;font-family:inherit;font-size:13px;color:var(--ink);cursor:pointer;min-width:34px}
+.pager button:hover:not(:disabled){border-color:var(--muted)}
+.pager button[aria-current="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.pager button:disabled{color:var(--muted);cursor:default;opacity:.5}
+.pager .gap{color:var(--muted);padding:0 2px}
 
 .state{background:var(--paper);border:1px solid var(--rule);padding:40px 24px;text-align:center}
 .state h2{font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:8px}
@@ -212,7 +218,8 @@ function rupiah(n){n=Number(n)||0;if(n>=1e9)return'Rp '+id2(n/1e9)+' M';if(n>=1e
 function angka(n){return Math.round(Number(n)||0).toLocaleString('id-ID');}
 function roi(n){return id2(n)+'x';}
 function persen(n){return id2((Number(n)||0)*100)+'%';}
-function rasio(n){return id2(n);}
+function rasio(n){return id1((Number(n)||0)*100)+'%';}
+function id1(n){return (Number(n)||0).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1});}
 function tanggal(s){if(!s)return'';var p=String(s).split('-');if(p.length<3)return s;return parseInt(p[2],10)+' '+BULAN[parseInt(p[1],10)-1]+' '+p[0];}
 function tglPendek(s){var p=String(s).split('-');if(p.length<3)return s;return parseInt(p[2],10)+' '+BULAN[parseInt(p[1],10)-1];}
 function kelasRoi(v){return v>=3?'b-pos':(v>=1?'b-mid':'b-neg');}
@@ -342,7 +349,7 @@ function rangkaShell(){
   document.getElementById('tab-gmv').addEventListener('click',function(){gantiTab('gmv');});
   document.getElementById('tab-roi').addEventListener('click',function(){gantiTab('roi');});
   document.getElementById('filters').innerHTML=filtersHtml();
-  document.getElementById('btn-filter').addEventListener('click',renderVideoTable);
+  document.getElementById('btn-filter').addEventListener('click',applyFilter);
   document.getElementById('btn-reset-filter').addEventListener('click',resetFilter);
 }
 
@@ -354,8 +361,8 @@ function render(){
 
   document.getElementById('focal-ratio').textContent=rasio(k.rasio_biaya);
   document.getElementById('focal-split').innerHTML=
-    '<div class="r"><span><span class="sw sw-s"></span>Seller</span><b>'+rasio(k.rasio_biaya_seller)+'</b></div>'+
-    '<div class="r"><span><span class="sw sw-a"></span>Affiliator</span><b>'+rasio(k.rasio_biaya_affil)+'</b></div>';
+    '<div class="r"><span>Seller</span><b>'+rasio(k.rasio_biaya_seller)+'</b></div>'+
+    '<div class="r"><span>Affiliator</span><b>'+rasio(k.rasio_biaya_affil)+'</b></div>';
 
   document.getElementById('ringkasan').innerHTML=[
     stat('GMV', rupiah(k.gmv_total), splitRp(k.gmv_seller,k.gmv_affil)),
@@ -376,8 +383,8 @@ function render(){
   renderTop();
 }
 function stat(l,v,split){return '<div class="stat"><dt>'+esc(l)+'</dt><dd>'+esc(v)+'<div class="split">'+split+'</div></dd></div>';}
-function splitRp(s,a){return '<span class="sw sw-s"></span>'+esc(rupiah(s))+' &nbsp; <span class="sw sw-a"></span>'+esc(rupiah(a));}
-function splitNum(s,a){return '<span class="sw sw-s"></span>'+esc(angka(s))+' &nbsp; <span class="sw sw-a"></span>'+esc(angka(a));}
+function splitRp(s,a){return 'Seller '+esc(rupiah(s))+' &middot; Affiliator '+esc(rupiah(a));}
+function splitNum(s,a){return 'Seller '+esc(angka(s))+' &middot; Affiliator '+esc(angka(a));}
 
 var AXIS={color:'#5D6672',font:{size:11}}, GRID={color:'#E3E6EA'};
 function pustakaAda(){return typeof Chart!=='undefined';}
@@ -472,7 +479,7 @@ function bindBetween(){
   });
 }
 function resetFilter(){
-  document.getElementById('filters').innerHTML=filtersHtml(); bindBetween(); renderVideoTable();
+  document.getElementById('filters').innerHTML=filtersHtml(); bindBetween(); applyFilter();
 }
 function muatTabelVideo(){
   var r=rentang();
@@ -481,7 +488,7 @@ function muatTabelVideo(){
   bindBetween();
   fetch(GAS_URL+'?action=videos&start='+encodeURIComponent(r.s)+'&end='+encodeURIComponent(r.e))
     .then(function(x){if(!x.ok)throw new Error('Server '+x.status);return x.json();})
-    .then(function(j){ if(!j.ok)throw new Error(j.error||'Respons tidak dikenali'); allVideos=j.data||[]; renderVideoTable(); })
+    .then(function(j){ if(!j.ok)throw new Error(j.error||'Respons tidak dikenali'); allVideos=j.data||[]; applyFilter(); })
     .catch(function(e){ box.innerHTML='<div class="panel-state">Daftar video gagal diambil. Penyebab: '+esc(e.message)+'.</div>'; });
 }
 function readNum(id){
@@ -510,11 +517,17 @@ function lolosDate(val,f){
   if(f.op==='bt'){if(f.a&&val<f.a)return false;if(f.b&&val>f.b)return false;return true;}
   return true;
 }
+var filteredVideos=[];
+var vidPage=1;
+var PER_PAGE=50;
+
+function applyFilter(){ vidPage=1; renderVideoTable(); }
+
 function renderVideoTable(){
   var box=document.getElementById('videotable');
   var user=(document.getElementById('f-user')?document.getElementById('f-user').value:'').toLowerCase().trim();
   var fRoi=readNum('f-roi'),fSpend=readNum('f-spend'),fGmv=readNum('f-gmv'),fPost=readDate('f-post');
-  var list=allVideos.filter(function(v){
+  filteredVideos=allVideos.filter(function(v){
     if(user && v.username.toLowerCase().indexOf(user)<0)return false;
     if(!lolosNum(v.roi,fRoi))return false;
     if(!lolosNum(v.spend,fSpend))return false;
@@ -522,11 +535,19 @@ function renderVideoTable(){
     if(!lolosDate(v.tgl_posting,fPost))return false;
     return true;
   });
-  document.getElementById('filter-count').textContent=list.length+' dari '+allVideos.length+' video';
-  if(!list.length){box.innerHTML='<div class="panel-state">Tidak ada video yang cocok dengan filter.</div>';return;}
-  var rows=list.map(function(v,i){
+
+  var total=filteredVideos.length;
+  var pages=Math.max(1,Math.ceil(total/PER_PAGE));
+  if(vidPage>pages)vidPage=pages;
+  document.getElementById('filter-count').textContent=total+' dari '+allVideos.length+' video';
+
+  if(!total){box.innerHTML='<div class="panel-state">Tidak ada video yang cocok dengan filter.</div>';return;}
+
+  var start=(vidPage-1)*PER_PAGE;
+  var slice=filteredVideos.slice(start,start+PER_PAGE);
+  var rows=slice.map(function(v,i){
     var url='https://www.tiktok.com/@'+encodeURIComponent(v.username)+'/video/'+encodeURIComponent(v.video_id);
-    return '<tr><td>'+(i+1)+'</td>'+
+    return '<tr><td>'+(start+i+1)+'</td>'+
       '<td><button class="namebtn" type="button" data-user="'+esc(v.username)+'">'+esc(v.username)+'</button></td>'+
       '<td>'+esc(String(v.video_id).slice(-10))+'</td>'+
       '<td>'+esc(tglPendek(v.tgl_posting))+'</td>'+
@@ -539,8 +560,35 @@ function renderVideoTable(){
   }).join('');
   box.innerHTML='<div class="scroll"><table><thead><tr><th>#</th><th>Kreator</th><th>ID video</th><th>Posting</th>'+
     '<th class="num">GMV</th><th class="num">Spend</th><th class="num">Order</th><th class="num">ROI</th><th class="num">CTR</th><th>Tautan</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody></table></div>';
+    '<tbody>'+rows+'</tbody></table></div>'+pagerHtml(vidPage,pages);
   pasangKlikNama(box);
+  var pager=box.querySelector('.pager');
+  if(pager) pager.querySelectorAll('button[data-page]').forEach(function(b){
+    b.addEventListener('click',function(){ vidPage=parseInt(b.getAttribute('data-page'),10); renderVideoTable(); box.scrollIntoView({block:'start'}); });
+  });
+}
+
+// Deret nomor halaman ringkas: 1 … (di sekitar aktif) … N
+function pageList(cur,pages){
+  var out=[], win=1;
+  var set={};
+  [1,2,pages-1,pages,cur-win,cur,cur+win].forEach(function(p){ if(p>=1&&p<=pages)set[p]=true; });
+  var nums=Object.keys(set).map(Number).sort(function(a,b){return a-b;});
+  var prev=0;
+  nums.forEach(function(p){ if(p-prev>1)out.push('gap'); out.push(p); prev=p; });
+  return out;
+}
+function pagerHtml(cur,pages){
+  if(pages<=1)return '';
+  var parts=['<div class="pager">'];
+  parts.push('<button type="button" data-page="'+(cur-1)+'"'+(cur<=1?' disabled':'')+'>Sebelumnya</button>');
+  pageList(cur,pages).forEach(function(p){
+    if(p==='gap'){ parts.push('<span class="gap">…</span>'); return; }
+    parts.push('<button type="button" data-page="'+p+'"'+(p===cur?' aria-current="true"':'')+'>'+p+'</button>');
+  });
+  parts.push('<button type="button" data-page="'+(cur+1)+'"'+(cur>=pages?' disabled':'')+'>Berikutnya</button>');
+  parts.push('</div>');
+  return parts.join('');
 }
 
 function pasangKlikNama(root){root.querySelectorAll('.namebtn').forEach(function(b){b.addEventListener('click',function(){bukaKreator(b.getAttribute('data-user'),b);});});}
