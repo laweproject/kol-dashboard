@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --maroon:#6E241E; --maroon-soft:#8A322A; --gold:#A67C2E;
+  --ink:#1c1a17; --muted:#8b857c; --line:#e6e2da; --panel:#fff; --bg:#ececec;
+  --red-bg:#fbe4e4; --red-tx:#9b2323; --amber:#b7791f; --green:#2f7d55;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.4}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px}
+header.top{background:#fff;border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;padding:22px 20px 18px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
+.brand small{color:var(--gold);font-weight:600;letter-spacing:.02em;font-size:13px}
+.brand h1{margin:2px 0 0;font-size:26px;font-weight:700}
+.updated{color:var(--muted);font-size:13px;margin-top:6px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;background:#f2efe9;border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--ink);color:#fff}
+input[type=date]{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:13px;color:var(--ink);background:#fff}
+.dash{color:var(--muted)}
+section{background:var(--panel);border-radius:14px;padding:26px 28px;margin-top:22px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.sec-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.sec-head h2{margin:0;font-size:18px;font-weight:700}
+.hero{display:grid;grid-template-columns:300px 1fr;gap:0}
+.hero .ratio{padding-right:34px;border-right:1px solid var(--line)}
+.ratio .lbl{color:var(--muted);font-size:14px;margin-bottom:14px}
+.ratio .big{font-family:var(--serif);color:var(--maroon);font-weight:800;font-size:64px;line-height:.9;letter-spacing:-.01em}
+.ratio .big .pct{font-size:30px;vertical-align:super;margin-left:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:7px 12px;border-radius:8px;font-size:13.5px;font-weight:600}
+.badge.red{background:var(--red-bg);color:var(--red-tx)}
+.badge.amber{background:#fdf1dc;color:var(--amber)}
+.badge.green{background:#e4f3ea;color:var(--green)}
+.ratio .sub{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
+.ratio .sub b{color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);padding-left:34px}
+.kpi{padding:6px 20px 22px}
+.kpi:nth-child(-n+3){border-bottom:1px solid var(--line);padding-top:0}
+.kpi:nth-child(n+4){padding-top:22px}
+.kpi .k-lbl{color:var(--muted);font-size:14px;margin-bottom:8px}
+.kpi .k-val{font-family:var(--serif);font-weight:700;font-size:30px;line-height:1;letter-spacing:-.01em}
+.kpi .k-note{color:var(--muted);font-size:12.5px;margin-top:8px}
+.chart-wrap{overflow-x:auto}
+svg.chart{display:block;width:100%;min-width:560px;height:300px}
+.bar{fill:var(--gold)}
+.bar.empty{fill:#e3ddd2}
+.bar-lbl{fill:var(--ink);font-size:11px;font-weight:600;text-anchor:middle}
+.axis-lbl{fill:var(--muted);font-size:11px;text-anchor:middle}
+.funnel-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:36px;align-items:center}
+.funnel{display:flex;flex-direction:column;gap:10px}
+.frow{width:100%;display:flex;align-items:center;gap:18px}
+.fstep{color:#fff;border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;box-shadow:0 2px 8px rgba(110,36,30,.12)}
+.fstep .fname{font-weight:600;font-size:14px}
+.fstep .fnum{font-family:var(--serif);font-weight:700;font-size:24px}
+.frate{flex:0 0 78px;font-size:12.5px;color:var(--muted)}
+.frate b{display:block;color:var(--ink);font-size:15px;font-family:var(--serif)}
+.fkeys{display:flex;flex-direction:column;gap:14px}
+.fkey{border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.fkey .fk-lbl{color:var(--muted);font-size:13px}
+.fkey .fk-val{font-family:var(--serif);font-weight:700;font-size:26px;margin-top:4px}
+.fkey .fk-note{color:var(--muted);font-size:12px;margin-top:3px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.metric{border:1px solid var(--line);border-radius:12px;padding:18px}
+.metric .m-lbl{color:var(--muted);font-size:13px;min-height:34px}
+.metric .m-val{font-family:var(--serif);font-weight:700;font-size:28px;margin-top:6px}
+.metric .m-note{color:var(--muted);font-size:12px;margin-top:6px}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
+.drop:hover,.drop.drag{border-color:var(--gold);background:#faf7f0;color:var(--ink)}
+.drop b{color:var(--ink)}
+.drop input{display:none}
+.up-h3,.cost-form h3{margin:0 0 12px;font-size:15px;font-weight:700}
+.cost-row{display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:10px;align-items:end}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-family:inherit;font-size:14px}
+.btn{border:0;background:var(--maroon);color:#fff;font-weight:600;padding:10px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:14px}
+.btn:hover{background:var(--maroon-soft)}
+.btn:disabled{opacity:.5;cursor:default}
+.cost-table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13.5px}
+.cost-table th{text-align:left;color:var(--muted);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--line)}
+.cost-table td{padding:8px 6px;border-bottom:1px solid var(--line)}
+.cost-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.cost-table .del{color:var(--red-tx);cursor:pointer;border:0;background:none;font-size:13px}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:#f2efe9;color:var(--muted);margin-left:8px}
+.empty-note{color:var(--muted);font-size:14px;text-align:center}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.toast.show{opacity:1}
+.loading{position:fixed;inset:0;background:rgba(236,236,236,.85);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted);z-index:60}
+@media(max-width:820px){
+  .hero{grid-template-columns:1fr}
+  .hero .ratio{border-right:0;border-bottom:1px solid var(--line);padding:0 0 20px}
+  .kpis{padding-left:0;padding-top:20px}
+  .funnel-grid{grid-template-columns:1fr}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .tools{grid-template-columns:1fr}
+  .cost-row{grid-template-columns:1fr 1fr}
+}
+@media(max-width:520px){.kpis{grid-template-columns:1fr 1fr}.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="loading" id="loading">Memuat data…</div>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <small>Golden Tin</small>
+      <h1>Report Performa Live</h1>
+      <div class="updated" id="updated">Memuat…</div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="rangeSeg">
+        <button data-r="7" class="on">7 hari</button>
+        <button data-r="3">3 hari</button>
+        <button data-r="1">Hari ini</button>
+      </div>
+      <input type="date" id="dFrom"><span class="dash">–</span><input type="date" id="dTo">
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section>
+    <div class="hero">
+      <div class="ratio">
+        <div class="lbl">Biaya / GMV periode ini</div>
+        <div class="big" id="ratioBig">—</div>
+        <div id="ratioBadge"></div>
+        <div class="sub" id="ratioSub">GMV — · Total biaya —</div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k-lbl">GMV</div><div class="k-val" id="kGmv">—</div><div class="k-note">GMV langsung dari live</div></div>
+        <div class="kpi"><div class="k-lbl">Total biaya</div><div class="k-val" id="kCost">—</div><div class="k-note">iklan + fee host</div></div>
+        <div class="kpi"><div class="k-lbl">AOV</div><div class="k-val" id="kAov">—</div><div class="k-note">GMV ÷ order</div></div>
+        <div class="kpi"><div class="k-lbl">Spend iklan</div><div class="k-val" id="kSpend">—</div><div class="k-note" id="kSpendPct">— dari GMV · termasuk PPN 11%</div></div>
+        <div class="kpi"><div class="k-lbl">Fee host</div><div class="k-val" id="kFee">—</div><div class="k-note" id="kFeePct">— dari GMV</div></div>
+        <div class="kpi"><div class="k-lbl">Order</div><div class="k-val" id="kOrder">—</div><div class="k-note">pesanan</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Trend harian</h2>
+      <div class="seg" id="trendSeg">
+        <button data-t="gmv" class="on">GMV</button>
+        <button data-t="spend">Spend</button>
+        <button data-t="ratio">Rasio ads</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><svg class="chart" id="trend" preserveAspectRatio="none"></svg></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Funnel live</h2></div>
+    <div class="funnel-grid">
+      <div class="funnel" id="funnel"></div>
+      <div class="fkeys">
+        <div class="fkey"><div class="fk-lbl">CTR — klik dari impresi</div><div class="fk-val" id="ctr">—</div><div class="fk-note">berapa banyak yang klik produk</div></div>
+        <div class="fkey"><div class="fk-lbl">CTOR — order dari klik</div><div class="fk-val" id="ctor">—</div><div class="fk-note">kekuatan closing saat sudah tertarik</div></div>
+        <div class="fkey"><div class="fk-lbl">AOV — nilai rata-rata order</div><div class="fk-val" id="aov2">—</div><div class="fk-note">GMV ÷ order</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Metrik kunci</h2></div>
+    <div class="metrics">
+      <div class="metric"><div class="m-lbl">GMV per jam live</div><div class="m-val" id="mGmvJam">—</div><div class="m-note" id="mJam">— jam live</div></div>
+      <div class="metric"><div class="m-lbl">GMV per 100 penonton</div><div class="m-val" id="mGmv100">—</div><div class="m-note" id="mPen">— penonton</div></div>
+      <div class="metric"><div class="m-lbl">Engagement rate</div><div class="m-val" id="mEng">—</div><div class="m-note">(komentar + share) ÷ penonton</div></div>
+      <div class="metric"><div class="m-lbl">Durasi nonton rata-rata</div><div class="m-val" id="mWatch">—</div><div class="m-note">per penonton</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Data &amp; biaya</h2></div>
+    <div class="tools">
+      <div>
+        <div class="up-h3">Upload Live Analysis</div>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept=".xlsx,.xls">
+          <div><b>Klik atau seret file .xlsx</b><br>Export Live Analysis dari TikTok. Data per tanggal ditimpa otomatis.</div>
+        </label>
+      </div>
+      <div class="cost-form">
+        <h3>Input biaya <span class="pill">tanpa perlu file</span></h3>
+        <div class="cost-row">
+          <div class="field"><label>Tanggal</label><input type="date" id="cDate"></div>
+          <div class="field"><label>Spend iklan (sebelum PPN)</label><input type="number" id="cSpend" min="0" placeholder="0"></div>
+          <div class="field"><label>Fee host (Rp)</label><input type="number" id="cFee" min="0" placeholder="0"></div>
+          <button class="btn" id="cSave">Simpan</button>
+        </div>
+        <table class="cost-table" id="costTable"><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var RED_THRESHOLD = 40, AMBER_THRESHOLD = 30;
+var TAX = 0.11; // PPN iklan; spend efektif = input × (1+TAX)
+var SPEND_MUL = 1 + TAX;
+var live = {}, cost = {};
+
+/* server bridge (promise wrapper) */
+function call(fn){ var a=[].slice.call(arguments,1);
+  return new Promise(function(res,rej){
+    google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn].apply(null,a);
+  });
+}
+function busy(on){ document.getElementById('loading').style.display=on?'flex':'none'; }
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},1900);}
+
+var fmtRp=function(n){ if(n>=1e9)return 'Rp '+(n/1e9).toFixed(2).replace('.',',')+' M';
+  if(n>=1e6)return 'Rp '+(n/1e6).toFixed(2).replace('.',',')+' jt';
+  if(n>=1e3)return 'Rp '+(n/1e3).toFixed(1).replace('.',',')+' rb';
+  return 'Rp '+Math.round(n); };
+var fmtNum=function(n){return Math.round(n).toLocaleString('id-ID')};
+var fmtPct=function(n){return (isFinite(n)?n.toFixed(2).replace('.',','):'0')+'%'};
+
+/* range */
+var range={mode:'7',from:null,to:null};
+function allDates(){var s={};for(var k in live)s[k]=1;for(var k2 in cost)s[k2]=1;return Object.keys(s).sort();}
+function activeDates(){
+  var ds=allDates(); if(!ds.length)return [];
+  var last=ds[ds.length-1];
+  if(range.from&&range.to)return ds.filter(function(d){return d>=range.from&&d<=range.to;});
+  var n=range.mode==='7'?7:range.mode==='3'?3:1;
+  var lastD=new Date(last),start=new Date(lastD);start.setDate(lastD.getDate()-(n-1));
+  var s=start.toISOString().slice(0,10);
+  return ds.filter(function(d){return d>=s&&d<=last;});
+}
+
+/* xlsx parse -> agregat per tanggal (GMV langsung) */
+function parseDur(s){var m=/(\d+)h\s*(\d+)min/.exec(String(s));return m?(+m[1]+ +m[2]/60):0;}
+function findCol(H,names){for(var j=0;j<names.length;j++){for(var i=0;i<H.length;i++)if(String(H[i]).trim()===names[j])return i;}return -1;}
+function aggregate(rows){
+  var hi=-1;for(var i=0;i<Math.min(rows.length,6);i++){if(rows[i].some(function(c){return String(c).trim()==='Durasi';})){hi=i;break;}}
+  if(hi<0){toast('Format file tidak dikenali');return null;}
+  var H=rows[hi];
+  var c={waktu:findCol(H,['Waktu Live']),dur:findCol(H,['Durasi']),
+    gmv:findCol(H,['GMV LIVE (Rp)','GMV dari LIVE (Rp)']),  // GMV LANGSUNG diutamakan
+    pen:findCol(H,['Penonton']),klik:findCol(H,['Klik Produk']),order:findCol(H,['Pemesanan']),
+    imp:findCol(H,['Produk Dilihat']),kom:findCol(H,['Komentar']),sh:findCol(H,['Live Dibagikan']),
+    watch:findCol(H,['Durasi menonton rata-rata (Siaran LIVE)'])};
+  var map={};
+  function num(r,x){var v=parseFloat(String(r[x]).replace(/[^\d.-]/g,''));return isFinite(v)?v:0;}
+  for(var k=hi+1;k<rows.length;k++){
+    var r=rows[k];if(!r||!r[c.waktu])continue;
+    var dm=/(\d{4})\/(\d{2})\/(\d{2})/.exec(String(r[c.waktu]));if(!dm)continue;
+    var d=dm[1]+'-'+dm[2]+'-'+dm[3];
+    if(!map[d])map[d]={date:d,gmv:0,pen:0,klik:0,order:0,imp:0,jam:0,kom:0,sh:0,watchNum:0,watchDen:0};
+    var o=map[d],pen=num(r,c.pen);
+    o.gmv+=num(r,c.gmv);o.pen+=pen;o.klik+=num(r,c.klik);o.order+=num(r,c.order);
+    o.imp+=num(r,c.imp);o.jam+=parseDur(r[c.dur]);o.kom+=num(r,c.kom);o.sh+=num(r,c.sh);
+    o.watchNum+=num(r,c.watch)*pen;o.watchDen+=pen;
+  }
+  var arr=[];for(var d2 in map){map[d2].jam=Math.round(map[d2].jam*1000)/1000;arr.push(map[d2]);}
+  return arr;
+}
+
+/* render */
+function agg(dates){
+  var t={gmv:0,pen:0,klik:0,order:0,imp:0,jam:0,kom:0,sh:0,watchNum:0,watchDen:0,spend:0,fee:0};
+  dates.forEach(function(d){var l=live[d];if(l)for(var k in l)t[k]+=(l[k]||0);
+    var c=cost[d];if(c){t.spend+=(c.spend||0)*SPEND_MUL;t.fee+=c.fee||0;}});
+  return t;
+}
+function set(id,v){document.getElementById(id).textContent=v;}
+function fmtDate(d){var p=String(d).split('-'),b=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  if(p.length<3||isNaN(+p[2])||isNaN(+p[1]))return String(d);
+  return (+p[2])+' '+b[+p[1]-1];}
+
+function render(){
+  var ds=allDates();
+  document.getElementById('updated').textContent = ds.length
+    ? 'Diperbarui '+ds.length+' hari, terakhir '+fmtDate(ds[ds.length-1]) : 'Belum ada data — upload file / isi biaya';
+  var dates=activeDates(), t=agg(dates), totalCost=t.spend+t.fee, ratio=t.gmv>0?totalCost/t.gmv*100:0;
+
+  document.getElementById('ratioBig').innerHTML = t.gmv>0
+    ? ratio.toFixed(1).replace('.',',')+'<span class="pct">%</span>' : '—';
+  var badge=document.getElementById('ratioBadge');
+  if(t.gmv>0){var cls='green',txt='Aman';
+    if(ratio>=RED_THRESHOLD){cls='red';txt='⚠ Di atas batas merah';}
+    else if(ratio>=AMBER_THRESHOLD){cls='amber';txt='⚠ Mendekati batas';}
+    badge.innerHTML='<span class="badge '+cls+'">'+txt+'</span>';
+  } else badge.innerHTML='';
+  document.getElementById('ratioSub').innerHTML='GMV <b>'+fmtRp(t.gmv)+'</b> · Total biaya <b>'+fmtRp(totalCost)+'</b>';
+
+  set('kGmv',fmtRp(t.gmv));set('kCost',fmtRp(totalCost));
+  set('kAov',t.order?fmtRp(t.gmv/t.order):'—');
+  set('kSpend',fmtRp(t.spend));set('kFee',fmtRp(t.fee));set('kOrder',fmtNum(t.order));
+  set('kSpendPct',t.gmv?fmtPct(t.spend/t.gmv*100)+' dari GMV · termasuk PPN 11%':'termasuk PPN 11%');
+  set('kFeePct',t.gmv?fmtPct(t.fee/t.gmv*100)+' dari GMV':'—');
+
+  renderFunnel(t);
+  set('ctr',t.imp?fmtPct(t.klik/t.imp*100):'—');
+  set('ctor',t.klik?fmtPct(t.order/t.klik*100):'—');
+  set('aov2',t.order?fmtRp(t.gmv/t.order):'—');
+
+  set('mGmvJam',t.jam?fmtRp(t.gmv/t.jam):'—');
+  set('mJam',t.jam.toFixed(1).replace('.',',')+' jam live');
+  set('mGmv100',t.pen?fmtRp(t.gmv/t.pen*100):'—');
+  set('mPen',fmtNum(t.pen)+' penonton');
+  set('mEng',t.pen?fmtPct((t.kom+t.sh)/t.pen*100):'—');
+  var wsec=t.watchDen?t.watchNum/t.watchDen:0;
+  set('mWatch',wsec?(Math.floor(wsec/60)+'m '+Math.round(wsec%60)+'d'):'—');
+
+  renderTrend(dates);
+  renderCostTable();
+}
+
+function renderFunnel(t){
+  var steps=[{n:'Impresi',v:t.imp},{n:'Penonton',v:t.pen},{n:'Klik',v:t.klik},{n:'Order',v:t.order}];
+  var cols=['#8A322A','#9E5A2A','#B4812F','#C69A45'],widths=[100,80,60,44];
+  var el=document.getElementById('funnel');el.innerHTML='';
+  steps.forEach(function(s,i){
+    var prev=i>0?steps[i-1].v:null,pass=prev&&prev>0?(s.v/prev*100):null;
+    var row=document.createElement('div');row.className='frow';
+    row.innerHTML='<div class="fstep" style="background:'+cols[i]+';width:'+widths[i]+'%">'+
+      '<span class="fname">'+s.n+'</span><span class="fnum">'+fmtNum(s.v)+'</span></div>'+
+      '<div class="frate">'+(pass!=null?'<b>'+pass.toFixed(1).replace('.',',')+'%</b>lolos':'<b>100%</b>masuk')+'</div>';
+    el.appendChild(row);
+  });
+}
+
+var trendMode='gmv';
+function renderTrend(dates){
+  var svg=document.getElementById('trend');
+  var W=Math.max(560,dates.length*70),H=300,padB=40,padT=30,padL=8,padR=8;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.style.minWidth=W+'px';
+  if(!dates.length){svg.innerHTML='<text x="'+(W/2)+'" y="'+(H/2)+'" class="axis-lbl">Belum ada data</text>';return;}
+  var vals=dates.map(function(d){var l=live[d]||{gmv:0},c=cost[d]||{spend:0,fee:0};
+    if(trendMode==='gmv')return l.gmv||0;
+    if(trendMode==='spend')return (c.spend||0)*SPEND_MUL;
+    return (l.gmv>0)?((c.spend||0)*SPEND_MUL)/l.gmv*100:0;});
+  var max=Math.max.apply(null,vals.concat([1]));
+  var bw=(W-padL-padR)/dates.length,innerW=bw*0.56,gap=(bw-innerW)/2,s='';
+  dates.forEach(function(d,i){
+    var v=vals[i],h=(v/max)*(H-padB-padT),x=padL+i*bw+gap,y=H-padB-h,empty=v===0;
+    var lbl=trendMode==='ratio'?fmtPct(v):fmtRp(v);
+    s+='<rect class="bar '+(empty?'empty':'')+'" x="'+x+'" y="'+(empty?H-padB-2:y)+'" width="'+innerW+'" height="'+(empty?2:h)+'" rx="4"></rect>';
+    if(!empty)s+='<text class="bar-lbl" x="'+(x+innerW/2)+'" y="'+(y-7)+'">'+lbl+'</text>';
+    s+='<text class="axis-lbl" x="'+(x+innerW/2)+'" y="'+(H-padB+18)+'">'+fmtDate(d)+'</text>';
+  });
+  svg.innerHTML=s;
+}
+
+function renderCostTable(){
+  var tb=document.querySelector('#costTable tbody');
+  var ds=Object.keys(cost).sort().reverse();
+  if(!ds.length){tb.innerHTML='<tr><td colspan="5" class="empty-note" style="padding:18px 0">Belum ada biaya. Isi di atas — tak perlu upload file.</td></tr>';return;}
+  var html='<tr><th>Tanggal</th><th style="text-align:right">Spend</th><th style="text-align:right">Fee host</th><th style="text-align:right">GMV</th><th></th></tr>';
+  ds.forEach(function(d){var c=cost[d],g=(live[d]||{}).gmv||0;
+    html+='<tr><td>'+fmtDate(d)+' '+d.slice(0,4)+'</td><td class="num">'+fmtRp((c.spend||0)*SPEND_MUL)+'</td><td class="num">'+fmtRp(c.fee||0)+'</td><td class="num">'+(g?fmtRp(g):'—')+'</td><td style="text-align:right"><button class="del" data-d="'+d+'">hapus</button></td></tr>';
+  });
+  tb.innerHTML=html;
+  [].forEach.call(tb.querySelectorAll('.del'),function(b){b.onclick=function(){
+    busy(true);call('deleteCost',b.dataset.d).then(function(data){apply(data);toast('Biaya dihapus');busy(false);}).catch(function(){busy(false);toast('Gagal hapus');});
+  };});
+}
+
+function apply(data){ live=data.live||{}; cost=data.cost||{}; render(); }
+
+/* events */
+document.getElementById('rangeSeg').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+  [].forEach.call(this.children,function(x){x.classList.remove('on')});b.classList.add('on');
+  range.mode=b.dataset.r;range.from=range.to=null;
+  document.getElementById('dFrom').value='';document.getElementById('dTo').value='';render();};
+document.getElementById('trendSeg').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+  [].forEach.call(this.children,function(x){x.classList.remove('on')});b.classList.add('on');
+  trendMode=b.dataset.t;renderTrend(activeDates());};
+function onDate(){var f=document.getElementById('dFrom').value,t=document.getElementById('dTo').value;
+  if(f&&t){range.from=f;range.to=t;[].forEach.call(document.getElementById('rangeSeg').children,function(x){x.classList.remove('on')});render();}}
+document.getElementById('dFrom').oninput=onDate;
+document.getElementById('dTo').oninput=onDate;
+
+var drop=document.getElementById('drop'),file=document.getElementById('file');
+drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('drag');});
+drop.addEventListener('dragleave',function(){drop.classList.remove('drag');});
+drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0]);});
+file.onchange=function(e){if(e.target.files[0])readFile(e.target.files[0]);};
+function readFile(f){
+  var r=new FileReader();
+  r.onload=function(ev){ try{
+    var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+    var arr=aggregate(rows); if(!arr)return;
+    busy(true);
+    call('saveLive',arr).then(function(data){apply(data);toast(arr.length+' tanggal diperbarui');busy(false);})
+      .catch(function(err){busy(false);toast('Gagal simpan ke Sheet');});
+  }catch(e){toast('Gagal membaca file');} };
+  r.readAsArrayBuffer(f);
+  file.value='';
+}
+
+document.getElementById('cSave').onclick=function(){
+  var d=document.getElementById('cDate').value;
+  if(!d){toast('Pilih tanggal dulu');return;}
+  var sp=parseFloat(document.getElementById('cSpend').value)||0;
+  var fe=parseFloat(document.getElementById('cFee').value)||0;
+  this.disabled=true;busy(true);
+  var btn=this;
+  call('saveCost',d,sp,fe).then(function(data){apply(data);
+    document.getElementById('cSpend').value='';document.getElementById('cFee').value='';
+    toast('Biaya tersimpan');btn.disabled=false;busy(false);
+  }).catch(function(){btn.disabled=false;busy(false);toast('Gagal simpan');});
+};
+
+/* init */
+busy(true);
+call('getData').then(function(data){apply(data);busy(false);})
+  .catch(function(){busy(false);toast('Gagal memuat data');});
+</script>
+</body>
+</html>
