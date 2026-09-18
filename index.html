@@ -477,14 +477,9 @@ function resetFilter(){
   document.getElementById('filters').innerHTML=filtersHtml(); bindBetween(); applyFilter();
 }
 function muatTabelVideo(){
-  var r=rentang();
-  var box=document.getElementById('videotable');
-  box.innerHTML='<div class="panel-state"><div class="spin"></div>Mengambil daftar video.</div>';
   bindBetween();
-  fetch(GAS_URL+'?action=videos&start='+encodeURIComponent(r.s)+'&end='+encodeURIComponent(r.e))
-    .then(function(x){if(!x.ok)throw new Error('Server '+x.status);return x.json();})
-    .then(function(j){ if(!j.ok)throw new Error(j.error||'Respons tidak dikenali'); allVideos=j.data||[]; applyFilter(); })
-    .catch(function(e){ box.innerHTML='<div class="panel-state">Daftar video gagal diambil. Penyebab: '+esc(e.message)+'.</div>'; });
+  allVideos = (rep && rep.videos) ? rep.videos : [];
+  applyFilter();
 }
 function readNum(id){
   var op=document.getElementById(id+'-op').value;
