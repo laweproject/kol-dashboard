@@ -230,32 +230,10 @@ function stateHtml(j,t,b){return '<div class="state"><h2>'+j+'</h2><p>'+t+'</p>'
 /* ---------- alur ---------- */
 function init(){
   if(!GAS_URL){tampilSetup();return;}
-  ambilBootstrap();
+  muatReport();
 }
 
-function ambilBootstrap(){
-  setStamp('Memuat');
-  document.getElementById('controls').hidden=true;
-  document.getElementById('main').innerHTML='<div class="state"><div class="spin"></div><h2>Mengambil data</h2><p>Menyiapkan rentang tanggal.</p></div>';
-  fetch(GAS_URL+'?action=bootstrap')
-    .then(function(r){if(!r.ok)throw new Error('Server '+r.status);return r.json();})
-    .then(function(j){
-      if(!j.ok)throw new Error(j.error||'Respons tidak dikenali');
-      boot=j.data||{};
-      if(!boot.min){
-        document.getElementById('main').innerHTML=stateHtml('Belum ada data',
-          'Belum ada file yang terbaca. Buka Google Sheets, jalankan menu KOL Dashboard, lalu Impor report TikTok (file Creatives per video dan product_list).',
-          '<button class="btn" type="button" onclick="ambilBootstrap()">Muat ulang</button>');
-        return;
-      }
-      document.getElementById('controls').hidden=false;
-      var ds=document.getElementById('d-start'), de=document.getElementById('d-end');
-      ds.min=de.min=boot.min; ds.max=de.max=boot.max;
-      if(!ds.value){ds.value=boot.min;} if(!de.value){de.value=boot.max;}
-      muatReport();
-    })
-    .catch(function(e){ gagal(e); });
-}
+function ambilBootstrap(){ muatReport(); }
 
 function gagal(e){
   setStamp('Gagal memuat');
@@ -273,13 +251,30 @@ function muatReport(){
   if(r.s && r.e && r.s>r.e){ document.getElementById('d-end').value=r.s; r.e=r.s; }
   setStamp('Memuat');
   document.getElementById('main').innerHTML='<div class="state"><div class="spin"></div><h2>Menghitung</h2><p>Menyusun laporan untuk rentang yang dipilih.</p></div>';
-  var url=GAS_URL+'?action=report&start='+encodeURIComponent(r.s)+'&end='+encodeURIComponent(r.e);
+  var qs='';
+  if(r.s) qs+='&start='+encodeURIComponent(r.s);
+  if(r.e) qs+='&end='+encodeURIComponent(r.e);
+  var url=GAS_URL+'?action=report'+qs;
   fetch(url).then(function(x){if(!x.ok)throw new Error('Server '+x.status);return x.json();})
     .then(function(j){
       if(!j.ok)throw new Error(j.error||'Respons tidak dikenali');
       rep=j.data;
+      var b=rep.bounds||{};
+      if(!b.min){
+        document.getElementById('controls').hidden=true;
+        document.getElementById('main').innerHTML=stateHtml('Belum ada data',
+          'Belum ada file yang terbaca. Buka Google Sheets, jalankan menu KOL Dashboard, lalu Impor report TikTok (file Creatives per video dan product_list).',
+          '<button class="btn" type="button" onclick="muatReport()">Muat ulang</button>');
+        return;
+      }
+      document.getElementById('controls').hidden=false;
+      var ds=document.getElementById('d-start'), de=document.getElementById('d-end');
+      ds.min=de.min=b.min; ds.max=de.max=b.max;
+      if(!ds.value) ds.value=rep.range.start;
+      if(!de.value) de.value=rep.range.end;
       setStamp('Diperbarui '+new Date().toLocaleString('id-ID'));
-      try{ rangkaShell(); render(); muatTabelVideo(); }      catch(err){ document.getElementById('main').innerHTML=stateHtml('Laporan gagal ditampilkan','Data terbaca, tapi tampilan gagal dirakit. Penyebab: '+esc(err.message)+'.','<button class="btn" type="button" onclick="muatReport()">Muat ulang</button>'); }
+      try{ rangkaShell(); render(); muatTabelVideo(); }
+      catch(err){ document.getElementById('main').innerHTML=stateHtml('Laporan gagal ditampilkan','Data terbaca, tapi tampilan gagal dirakit. Penyebab: '+esc(err.message)+'.','<button class="btn" type="button" onclick="muatReport()">Muat ulang</button>'); }
     })
     .catch(function(e){ gagal(e); });
 }
